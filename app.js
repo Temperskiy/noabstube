@@ -71,6 +71,40 @@ const spotifyForm = document.querySelector('#spotify-search');
 const playlistInput = document.querySelector('#playlist-query');
 const spotifyStatus = document.querySelector('#spotify-status');
 const playerWrap = document.querySelector('#player-wrap');
+const videoUrlInput = document.querySelector('#youtube-url');
+const videoPlayerWrap = document.querySelector('#video-player-wrap');
+
+function youtubeVideoId(raw) {
+  try {
+    const parsed = new URL(raw);
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    if (!['youtube.com', 'm.youtube.com', 'youtu.be', 'youtube-nocookie.com'].includes(host)) return null;
+    let id = '';
+    if (host === 'youtu.be') id = parsed.pathname.split('/').filter(Boolean)[0] || '';
+    else id = parsed.searchParams.get('v') || parsed.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1] || '';
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+function loadVideo() {
+  const raw = videoUrlInput.value.trim();
+  const id = youtubeVideoId(raw);
+  if (!id) {
+    videoStatus.textContent = 'Не получилось прочитать ссылку. Вставь обычную ссылку YouTube, Shorts или youtu.be.';
+    return;
+  }
+  const frame = document.createElement('iframe');
+  frame.title = 'Встроенный официальный плеер YouTube';
+  frame.src = `https://www.youtube-nocookie.com/embed/${id}`;
+  frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+  frame.referrerPolicy = 'strict-origin-when-cross-origin';
+  frame.loading = 'lazy';
+  frame.allowFullscreen = true;
+  videoPlayerWrap.replaceChildren(frame);
+  videoStatus.textContent = 'Видео загружено в официальный плеер YouTube. На нём могут действовать реклама и ограничения YouTube.';
+}
 
 spotifyForm.addEventListener('submit', (event) => {
   event.preventDefault();
@@ -121,6 +155,10 @@ function loadPlaylist() {
 document.querySelector('#load-playlist').addEventListener('click', loadPlaylist);
 document.querySelector('#spotify-url').addEventListener('keydown', (event) => {
   if (event.key === 'Enter') loadPlaylist();
+});
+document.querySelector('#load-video').addEventListener('click', loadVideo);
+videoUrlInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') loadVideo();
 });
 
 document.querySelector('#clear-history').addEventListener('click', () => {
